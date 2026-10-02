@@ -7,13 +7,19 @@
 
 ## 소스 1 — AI타임스 (전날 기사 전체)
 - 목록 페이지(https://www.aitimes.com/news/articleList.html?view_type=sm)는 서버가 `page=N` 파라미터를 무시해 1페이지만 내려준다. 페이지 넘김으로는 수집 불가.
-- 대신 다음 방식으로 수집한다 (curl + `-A "Mozilla/5.0"`):
-  1. RSS https://www.aitimes.com/rss/allArticle.xml (최신 50건, pubDate 포함)에서 기준 날짜 기사를 모은다.
-  2. 기사 번호(idxno)는 대체로 순차 증가한다. RSS에 나온 가장 큰 idxno부터 1씩 내려가며
-     `https://www.aitimes.com/news/articleView.html?idxno=N` 을 조회하고,
-     `<meta property="article:published_time" content="YYYY-MM-DDTHH:MM:SS+09:00">` 로 날짜를 확인한다.
-     기준 날짜 기사면 수집, 기준 날짜보다 이전 기사가 연속 30개 나오면 멈춘다. (없는 번호/삭제 기사는 건너뜀)
+- RSS(https://www.aitimes.com/rss/allArticle.xml)는 최신 50건뿐이라 하루치(최대 48건 관측)를 다 담지 못할 수 있다.
+- 기사 번호(idxno)는 발행 순서가 아니다(초안 생성 시 부여). 전날 기사가 최신 번호보다 300 가까이 낮은 경우도 있다.
+- **주 소스: 사이트맵** https://www.aitimes.com/sitemap.xml (curl `-A "Mozilla/5.0"`)
+  - 최신 기사 100건, 각 `<loc>`(idxno)와 `<news:publication_date>`(KST) 포함.
+  - publication_date 가 기준 날짜인 항목을 모두 수집.
+  - 2026-10-01 기준 idxno 전수 스캔 결과(37건)와 정확히 일치함을 확인.
+- **보완:** 사이트맵의 가장 오래된 항목이 기준 날짜 이후라면(=하루치가 100건을 넘어 잘렸을 수 있음),
+  사이트맵 최대 idxno부터 800개 아래까지 `articleView.html?idxno=N` 을 병렬 조회해
+  `article:published_time` 로 기준 날짜 기사를 추가 수집한다.
 - 기사마다: 제목, 링크, 등록 시각, 1~2문장 한국어 요약 (og:description 또는 본문 기반).
+
+### 참고: 일별 기사 수 (2026-09-14 ~ 10-01 실측)
+평일 24~48건, 주말 11~19건. 최대 48건(09-17).
 
 ## 소스 2 — AINews (news.smol.ai)
 - https://news.smol.ai/ 에 날짜별 이슈 링크가 올라온다.
